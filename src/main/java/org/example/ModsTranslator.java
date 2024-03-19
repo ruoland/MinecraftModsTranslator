@@ -1,28 +1,18 @@
 package org.example;
 
-import com.deepl.api.*;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.moandjiezana.toml.Toml;
+import org.apache.logging.log4j.Level;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 public class ModsTranslator {
-    private DeepLBuilder.DeepL deepL;
-    private String minecraftVersion;
-
     private HashMap<String, String> skipMods = new HashMap<>();
     private File skipFile = new File("./skipMods.json");
-
-    private String sourceLang, targetLang;
+    private String sourceLang, targetLang, minecraftVersion;
     public ModsTranslator(String mcVersion, String sourceLang, String targetLang){
         this.minecraftVersion = mcVersion;
         this.sourceLang = sourceLang;
@@ -55,7 +45,7 @@ public class ModsTranslator {
         ModJar modJar = new ModJar(new JarFile(jarFile.getAbsoluteFile()));
         modJar.setLang(sourceLang, targetLang);
 
-        if(!skipMods.keySet().contains(modJar.getModInfo())) {
+        if(!skipMods.containsKey(modJar.getModInfo())) {
             boolean canTranslate = modJar.canTranslate();
 
             if(canTranslate) {
@@ -65,7 +55,7 @@ public class ModsTranslator {
             else
                 skipMods.put(modJar.getModInfo(), modJar.getReason());
         }
-        System.out.println(modJar.getModID() + "의 " +modJar.getModVersion()+ " 버전은 번역을 하지 않음. 이유:" + skipMods.get(modJar.getModInfo()));
+        Main.logger.info(modJar.getModID() + "의 " +modJar.getModVersion()+ " 버전은 번역을 하지 않음. 이유:" + skipMods.get(modJar.getModInfo()));
 
     }
 

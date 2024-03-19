@@ -36,14 +36,14 @@ public class ModJar {
         JarEntry sourceEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + sourceLang + ".json");
         JarEntry targetEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + targetLang + ".json");
 
-        boolean canTranslate = sourceEntry != null && targetEntry == null;
+        boolean canTranslate = (sourceEntry != null) && (targetEntry == null);
 
         if(!canTranslate) {
             if (targetEntry != null) {
-                System.out.println(targetEntry.getRealName() + " 모드는 이미 "+targetLang+" 파일이 존재합니다. 번역할 필요가 없는 모드인 것 같습니다. (현재 이 프로그램은 파일 이어서 번역하기는 지원하지 않습니다.)");
+                Main.logger.info(targetEntry.getRealName() + " 모드는 이미 "+targetLang+" 파일이 존재합니다. 번역할 필요가 없는 모드인 것 같습니다. (현재 이 프로그램은 파일 이어서 번역하기는 지원하지 않습니다.)");
                 reason = "이미 "+targetLang+" 파일이 존재하는 모드";
-            } else if (sourceEntry == null) {
-                System.out.println(getModID() + " 모드는 번역할 파일이 존재하지 않습니다. 시작 번역 언어가 잘못됐거나 번역할 내용 자체가 없는 것 같습니다.");
+            } else {
+                Main.logger.info(getModID() + " 모드는 번역할 파일이 존재하지 않습니다. 시작 번역 언어가 잘못됐거나 번역할 내용 자체가 없는 것 같습니다.");
                 reason = sourceLang+" 파일이 존재하지 않는 모드";
             }
         }
@@ -56,7 +56,7 @@ public class ModJar {
     }
 
     public void translate() throws Exception {
-        System.out.println(modID + "translate start!");
+        Main.logger.info("번역 시작! {0}", modID);
 
         createJson();
         translateLang(modFile, sourceEntry);
