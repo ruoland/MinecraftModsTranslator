@@ -1,15 +1,9 @@
 package org.example;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.moandjiezana.toml.Toml;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -19,69 +13,53 @@ public class ModJar {
     private String modVersion;
     private String modID;
 
-    private String sourceLang, targetLang;
 
+    /**
+     * 한 모드(jar 파일)만을 다룰 수 있는 클래스
+     */
     public ModJar(JarFile modFile) {
         this.modFile = modFile;
     }
 
-    public void setLang(String sourceLang, String targetLang){
-        this.sourceLang = sourceLang;
-        this.targetLang = targetLang;
+
+
+    public boolean canTranslate() {
+        JarEntry sourceEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + ModsTranslator.getSourceLang() + ".json");
+        JarEntry targetEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + ModsTranslator.getTargetLang() + ".json");
+
+        this.sourceEntry = sourceEntry;
+
+        return checkReason(Objects.isNull(sourceEntry), Objects.nonNull(sourceEntry) && Objects.nonNull(targetEntry));
     }
 
-    public boolean canTranslate() throws Exception {
-        String modID = getModID();
-
-        JarEntry sourceEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + sourceLang + ".json");
-        JarEntry targetEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + targetLang + ".json");
-
-        boolean canTranslate = (sourceEntry != null) && (targetEntry == null);
-
-        if(!canTranslate) {
-            if (targetEntry != null) {
-                Main.logger.info(targetEntry.getRealName() + " 모드는 이미 "+targetLang+" 파일이 존재합니다. 번역할 필요가 없는 모드인 것 같습니다. (현재 이 프로그램은 파일 이어서 번역하기는 지원하지 않습니다.)");
-                reason = "이미 "+targetLang+" 파일이 존재하는 모드";
-            } else {
-                Main.logger.info(getModID() + " 모드는 번역할 파일이 존재하지 않습니다. 시작 번역 언어가 잘못됐거나 번역할 내용 자체가 없는 것 같습니다.");
-                reason = sourceLang+" 파일이 존재하지 않는 모드";
-            }
+    /**
+     * @param canSource 번역할 소스 파일 자체가 없는지 확인합니다.
+     * @param canTarget 번역하고자 하는 언어 파일이 이미 생성 되어 있는지 확인합니다.
+     * @return 확인 후 번역이 불가능하면 false를, 가능하면 true를 반환합니다.
+     */
+    private boolean checkReason(boolean canSource, boolean canTarget){
+        if(canSource || canTarget) { //번역할 수 없으므로 만들 수 없는 이유를 생성합니다
+            makeReason(canTarget);
+            return false;
         }
-        return canTranslate;
+        return true;
+    }
+
+    private void makeReason(boolean canTarget){
+        StringBuffer reasonBuffer = new StringBuffer();
+        if (canTarget) {
+            Main.logger.info("이름의 {} 모드는 이미 {} 파일이 존재합니다. 번역할 필요가 없는 모드인 것 같습니다. (현재 이 프로그램은 파일 이어서 번역하기는 지원하지 않습니다.)", modID, ModsTranslator.getTargetLang());
+            reason = reasonBuffer.append("이미").append(" ").append(ModsTranslator.getTargetLang()).append(" 파일이 존재합니다.").toString();
+        } else {
+            Main.logger.info("{} 모드는 번역할 파일이 존재하지 않습니다. 시작 번역 언어가 잘못됐거나 번역할 내용 자체가 없는 것 같습니다.", getModID());
+            reason = reasonBuffer.append(ModsTranslator.getSourceLang()).append(" 파일이 존재하지 않는 모드").toString();
+        }
     }
 
     private String reason;
+
     public String getReason(){
         return reason;
-    }
-
-    public void translate() throws Exception {
-        Main.logger.info("번역 시작! {0}", modID);
-
-        createJson();
-        translateLang(modFile, sourceEntry);
-    }
-
-    private void createJson(){
-        File file = new File("./"+targetLang+".json");
-        try {
-            if(!file.isFile())
-                file.createNewFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    private void translateLang(JarFile jarFile, JarEntry jarEntry) throws Exception {
-        JsonParser parser = new JsonParser();
-        JsonElement element = parser.parse(new InputStreamReader(jarFile.getInputStream(jarEntry)));
-        JsonObject object = element.getAsJsonObject();
-        Set<String> keys = object.asMap().keySet();
-        HashMap<String, String> translatorMap = new HashMap<>();
-
-        for (String key : keys) {
-            translatorMap.put(key, object.get(key).getAsString() + " - 번역");
-            System.out.println(object.get(key).getAsString());
-        }
     }
 
     private String modID() throws Exception {
@@ -110,6 +88,14 @@ public class ModJar {
         }
         return modID;
 
+    }
+
+    public JarEntry getLangEntry() {
+        return sourceEntry;
+    }
+
+    public JarFile getModFile() {
+        return modFile;
     }
 
     public String getModVersion() {
