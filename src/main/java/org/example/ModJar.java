@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.logging.Level;
 
 public class ModJar {
     private JarFile modFile;
@@ -15,7 +16,7 @@ public class ModJar {
 
 
     /**
-     * 한 모드(jar 파일)만을 다룰 수 있는 클래스
+     * 한 모드 파일당 하나의 클래스
      */
     public ModJar(JarFile modFile) {
         this.modFile = modFile;
@@ -24,22 +25,25 @@ public class ModJar {
 
 
     public boolean canTranslate() {
+        //번역할 언어
         JarEntry sourceEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + ModsTranslator.getSourceLang() + ".json");
+        //번역 될 언어
         JarEntry targetEntry = modFile.getJarEntry("assets/" + modID + "/lang/" + ModsTranslator.getTargetLang() + ".json");
 
         this.sourceEntry = sourceEntry;
 
+        //혹시 문제가 없는지 검사합니다.
         return checkReason(Objects.isNull(sourceEntry), Objects.nonNull(sourceEntry) && Objects.nonNull(targetEntry));
     }
 
     /**
-     * @param canSource 번역할 소스 파일 자체가 없는지 확인합니다.
-     * @param canTarget 번역하고자 하는 언어 파일이 이미 생성 되어 있는지 확인합니다.
+     * @param isSourceNull 번역할 소스 파일 자체가 없는지 확인합니다.
+     * @param isTargetNull 번역하고자 하는 언어 파일이 이미 생성 되어 있는지 확인합니다.
      * @return 확인 후 번역이 불가능하면 false를, 가능하면 true를 반환합니다.
      */
-    private boolean checkReason(boolean canSource, boolean canTarget){
-        if(canSource || canTarget) { //번역할 수 없으므로 만들 수 없는 이유를 생성합니다
-            makeReason(canTarget);
+    private boolean checkReason(boolean isSourceNull, boolean isTargetNull){
+        if(isSourceNull || isTargetNull) {
+            makeReason(isTargetNull); //번역할 수 없으므로 만들 수 없는 이유를 생성합니다
             return false;
         }
         return true;
@@ -63,6 +67,7 @@ public class ModJar {
     }
 
     private String modID() throws Exception {
+        //Toml 파일에 mods에 대한 정보가 들어있습니다. 예를 들어서 모드의 버전이나, 모드의 아이디, 등등.
         Toml toml = new Toml().read(new InputStreamReader(modFile.getInputStream(modFile.getJarEntry("META-INF/mods.toml"))));
         Toml forgeTables = toml.getTables("mods").get(0);
         this.modID = forgeTables.getString("modId");
